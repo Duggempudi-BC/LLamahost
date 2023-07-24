@@ -5,12 +5,9 @@ LLaMA 2 Chatbot app
 This is an Streamlit chatbot app with LLaMA2 that includes session chat history and option to select multiple LLM
 API enpoints on Replicate. Each model (7B, 13B & 70B) runs on Replicate on one A100 (40Gb). The weights have been tensorized.
 
-Author: Marco Mascorro (@mascobot.com)
-Created: July 2023
-Version: 0.9.0 (Experimental)
-Status: Development
+
 Python version: 3.9.15
-a16z-infra
+
 """
 #External libraries:
 import streamlit as st
@@ -19,7 +16,7 @@ from dotenv import load_dotenv
 load_dotenv()
 import os
 from utils import debounce_replicate_run
-from auth0_component import login_button
+
 
 ###Global variables:###
 REPLICATE_API_TOKEN = os.environ.get('REPLICATE_API_TOKEN', default='')
@@ -28,17 +25,14 @@ REPLICATE_MODEL_ENDPOINT7B = os.environ.get('REPLICATE_MODEL_ENDPOINT7B', defaul
 REPLICATE_MODEL_ENDPOINT13B = os.environ.get('REPLICATE_MODEL_ENDPOINT13B', default='')
 REPLICATE_MODEL_ENDPOINT70B = os.environ.get('REPLICATE_MODEL_ENDPOINT70B', default='')
 PRE_PROMPT = "You are a helpful assistant. You do not respond as 'User' or pretend to be 'User'. You only respond once as Assistant."
-#Auth0 for auth
-AUTH0_CLIENTID = os.environ.get('AUTH0_CLIENTID', default='')
-AUTH0_DOMAIN = os.environ.get('AUTH0_DOMAIN', default='')
 
-if not (REPLICATE_API_TOKEN and REPLICATE_MODEL_ENDPOINT13B and REPLICATE_MODEL_ENDPOINT7B and 
-        AUTH0_CLIENTID and AUTH0_DOMAIN):
+
+if not (REPLICATE_API_TOKEN and REPLICATE_MODEL_ENDPOINT13B and REPLICATE_MODEL_ENDPOINT7B):
     st.warning("Add a `.env` file to your app directory with the keys specified in `.env_template` to continue.")
     st.stop()
 
 ###Initial UI configuration:###
-st.set_page_config(page_title="LLaMA2 Chatbot by a16z-infra", page_icon="🦙", layout="wide")
+st.set_page_config(page_title="LLaMA2 Chatbot", layout="wide")
 
 def render_app():
 
@@ -84,18 +78,11 @@ def render_app():
     if 'string_dialogue' not in st.session_state:
         st.session_state['string_dialogue'] = ''
 
-    #Dropdown menu to select the model edpoint:
-    selected_option = st.sidebar.selectbox('Choose a LLaMA2 model:', ['LLaMA2-70B', 'LLaMA2-13B', 'LLaMA2-7B'], key='model')
-    if selected_option == 'LLaMA2-7B':
-        st.session_state['llm'] = REPLICATE_MODEL_ENDPOINT7B
-    elif selected_option == 'LLaMA2-13B':
-        st.session_state['llm'] = REPLICATE_MODEL_ENDPOINT13B
-    else:
-        st.session_state['llm'] = REPLICATE_MODEL_ENDPOINT70B
+    st.session_state['llm'] = REPLICATE_MODEL_ENDPOINT7B
     #Model hyper parameters:
-    st.session_state['temperature'] = st.sidebar.slider('Temperature:', min_value=0.01, max_value=5.0, value=0.1, step=0.01)
-    st.session_state['top_p'] = st.sidebar.slider('Top P:', min_value=0.01, max_value=1.0, value=0.9, step=0.01)
-    st.session_state['max_seq_len'] = st.sidebar.slider('Max Sequence Length:', min_value=64, max_value=4096, value=2048, step=8)
+    st.session_state['temperature'] = 0.8
+    st.session_state['top_p'] = 0.5
+    st.session_state['max_seq_len'] = 4096
 
     NEW_P = st.sidebar.text_area('Prompt before the chat starts. Edit here if desired:', PRE_PROMPT, height=60)
     if NEW_P != PRE_PROMPT and NEW_P != "" and NEW_P != None:
@@ -112,36 +99,14 @@ def render_app():
                                             use_container_width=True,
                                             on_click=clear_history)
 
-    # add logout button
-    def logout():
-        del st.session_state['user_info']
-    logout_button = btn_col2.button("Logout",
-                                use_container_width=True,
-                                on_click=logout)
+    # # add logout button
+    # def logout():
+    #     del st.session_state['user_info']
+    # logout_button = btn_col2.button("Logout",
+    #                             use_container_width=True,
+    #                             on_click=logout)
         
-    # add links to relevant resources for users to select
-    st.sidebar.write(" ")
 
-    text1 = 'Chatbot Demo Code' 
-    text2 = 'LLaMA2 70B Model on Replicate' 
-    text3 = 'LLaMa2 Cog Template'
-
-    text1_link = "https://github.com/a16z-infra/llama2-chatbot"
-    text2_link = "https://replicate.com/replicate/llama70b-v2-chat"
-    text3_link = "https://github.com/a16z-infra/cog-llama-template"
-
-    logo1 = 'https://storage.googleapis.com/llama2_release/a16z_logo.png'
-    logo2 = 'https://storage.googleapis.com/llama2_release/Screen%20Shot%202023-07-21%20at%2012.34.05%20PM.png'
-
-    st.sidebar.markdown(
-        "**Resources**  \n"
-        f"<img src='{logo2}' style='height: 1em'> [{text2}]({text2_link})  \n"
-        f"<img src='{logo1}' style='height: 1em'> [{text1}]({text1_link})  \n"
-        f"<img src='{logo1}' style='height: 1em'> [{text3}]({text3_link})",
-        unsafe_allow_html=True)
-
-    st.sidebar.write(" ")
-    st.sidebar.markdown("*Made with ❤️ by a16z Infra and Replicate. Not associated with Meta Platforms, Inc.*")
 
     # Display chat messages from history on app rerun
     for message in st.session_state.chat_dialogue:
@@ -175,9 +140,9 @@ def render_app():
         st.session_state.chat_dialogue.append({"role": "assistant", "content": full_response})
 
 
-if 'user_info' in st.session_state:
+# if 'user_info' in st.session_state:
 # if user_info:
-    render_app()
-else:
-    st.write("Please login to use the app. This is just to prevent abuse, we're not charging for usage.")
-    st.session_state['user_info'] = login_button(AUTH0_CLIENTID, domain = AUTH0_DOMAIN)
+render_app()
+# else:
+#     st.write("Please login to use the app. This is just to prevent abuse, we're not charging for usage.")
+#     st.session_state['user_info'] = login_button(AUTH0_CLIENTID, domain = AUTH0_DOMAIN)
